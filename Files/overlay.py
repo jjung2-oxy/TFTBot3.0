@@ -4,7 +4,6 @@ from PyQt5.QtGui import QPainter, QPen, QFont, QFontMetrics
 from PyQt5.QtWidgets import QApplication, QMainWindow
 import Files.screen_coords as screen_coords
 import threaded_main as tm
-import Files.interface as interface
 import pyautogui
 
 class OverlayApp:
@@ -51,9 +50,6 @@ class CustomWindow(QMainWindow):
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setAttribute(Qt.WA_NoSystemBackground, True)
-
-    def setTargetChamps(self):
-        self.target_champs = interface.get_curr_list()
 
     def update_overlay(self, stat_dict):
         self.string_dict = stat_dict  # Update the data for the textbox
