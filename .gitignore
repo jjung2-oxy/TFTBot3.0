@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# TFTBot3.0 FilesF
+Files/Qt/
+Files/pytesseract/
+
 # Distribution / packaging
 .Python
 build/

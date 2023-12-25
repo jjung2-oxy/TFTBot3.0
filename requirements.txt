@@ -1,0 +1,12 @@
+numpy
+opencv_python
+opencv_python_headless
+Roboflow
+Pillow
+PyAutoGUI
+pynput
+pytesseract
+torch
+python-Levenshtein
+PyQt5
+ultralytics
