@@ -1,9 +1,9 @@
 from Files.screen_coords import *
 from pynput.keyboard import Listener, KeyCode, Controller, Key
+from PIL import ImageGrab
 import argparse
 import Files.image_inference as image_inference
 import Files.champs_list as file
-import Files.OCR as OCR
 import time
 import sys
 import threading
@@ -19,6 +19,11 @@ class ThreadedMain:
         with Listener(on_press=self.on_press) as listener:
             listener.join()
 
+    def capture(bbox):
+        screenshot = ImageGrab.grab(bbox=bbox)
+        return screenshot
+
+
     def boardToModel(self):
         # Implement the boardToModel logic here
         keyboard = Controller() 
@@ -32,7 +37,7 @@ class ThreadedMain:
                     keyboard.press('q')
                     keyboard.release('q')
                 time.sleep(1)
-                screenshot = OCR.capture(())
+                screenshot = self.capture(())
                 screenshots.append(screenshot)
                 print(f"Captured screenshot #{index + 1}")
 
@@ -121,7 +126,7 @@ class ThreadedMain:
         if self.overlay_app:
             self.overlay_app.custom_window.update_signal.emit(stats_output)
 
-    def main(self):
+    def main(self, terminate_event):
         parser = argparse.ArgumentParser()
         parser.add_argument('-skp', '--simulate-keys', action='store_true', 
                             help='Enable simulation of key presses')
@@ -132,8 +137,10 @@ class ThreadedMain:
 
         listener_thread = threading.Thread(target=self.start_listener, daemon=True)
         listener_thread.start()
-        listener_thread.join()  
 
-if __name__ == "__main__":
-    tm = ThreadedMain()
-    tm.main()
+        # Keep the main thread alive until a terminate signal is received
+        while not terminate_event.is_set():
+            time.sleep(0.1)
+
+        # Clean up before exiting
+        listener_thread.join()

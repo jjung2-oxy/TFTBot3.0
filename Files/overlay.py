@@ -1,10 +1,14 @@
 import sys
+import os
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QPainter, QPen, QFont, QFontMetrics
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget
 import Files.screen_coords as screen_coords
 import threaded_main as tm
 import pyautogui
+
+qt_plugins_path = ".venv/lib/python3.11/site-packages/PyQt5/Qt5/plugins/"  # Replace with your actual path
+os.environ["QT_PLUGIN_PATH"] = qt_plugins_path
 
 class OverlayApp:
     def __init__(self, screen_scaling=1, opacity=1):
@@ -14,7 +18,7 @@ class OverlayApp:
         self.custom_window = CustomWindow(self.app, self.screen_scaling, self.opacity)
 
     def run(self):
-        self.custom_window.showFullScreen()
+        self.custom_window.show()
         self.custom_window.setWindowFlags(self.custom_window.windowFlags() | Qt.WindowStaysOnTopHint)
         self.custom_window.activateWindow()
         self.custom_window.raise_()
@@ -43,20 +47,23 @@ class CustomWindow(QMainWindow):
             '1_cost': 29,
             '2_cost': 22,
             '3_cost': 18,
-            '4_cost': 12
+            '4_cost': 12,
             # Add more if needed
         }
         self.string_dict = {}
+
+        screen = QDesktopWidget().screenGeometry()
+        
+        # Set window size to screen size
+        self.resize(screen.width(), screen.height() - 200)
+        self.move(0, 0)
+
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setAttribute(Qt.WA_NoSystemBackground, True)
 
     def update_overlay(self, stat_dict):
         self.string_dict = stat_dict  # Update the data for the textbox
-        self.update()  # Trigger a repaint
-        
-    def update_overlay2(self, curr_shop):
-        self.curr_shop = curr_shop   # Update the data for the textbox
         self.update()  # Trigger a repaint
 
     def close_window(self):
@@ -66,25 +73,9 @@ class CustomWindow(QMainWindow):
         try: 
             painter = QPainter(self)
             painter.setOpacity(self.opacity)
-            self.setTargetChamps()
-            self.highlight(painter)
             self.drawNewTextBox(painter, self.string_dict)  # Use the updated data
         except Exception as e:
             print(f"Error in paintEvent: {e}", file=sys.stderr)
-
-    def highlight(self, painter):
-        painter.setPen(QPen(Qt.red, 5, Qt.SolidLine))
-        for idx, champ in enumerate(self.curr_shop):
-            if champ in self.target_champs:
-                self.drawHighlightRectangle(painter, idx)
-
-    def drawHighlightRectangle(self, painter, idx):
-        spacing = round(screen_coords.CHAMP_SPACING * self.screen_scaling)
-        x = round(screen_coords.CHAMP_LEFT * self.screen_scaling)
-        y = round(screen_coords.CHAMP_TOP * self.screen_scaling)
-        height = round((screen_coords.CHAMP_BOT - screen_coords.CHAMP_TOP) * self.screen_scaling)
-        width = round((screen_coords.CHAMP_RIGHT - screen_coords.CHAMP_LEFT) * self.screen_scaling)
-        painter.drawRect(x + (spacing * idx), y, width, height)
 
     def drawNewTextBox(self, painter, stats_dict):
         textbox_x, textbox_y = 10, 10
