@@ -1,16 +1,19 @@
 from Files.screen_coords import *
 from pynput.keyboard import Listener, KeyCode, Controller, Key
 from PIL import ImageGrab
+from PyQt5.QtCore import *
 import argparse
 import Files.image_inference as image_inference
 import Files.champs_list as file
 import time
 import sys
 import threading
+import main as main
 
 class ThreadedMain:
     def __init__(self):
         self.overlay_app = None
+        self.flag = False
 
     def set_overlay_app(self, app):
         self.overlay_app = app
@@ -22,6 +25,10 @@ class ThreadedMain:
     def capture(bbox):
         screenshot = ImageGrab.grab(bbox=bbox)
         return screenshot
+    
+    def checkEvent(self, event):
+        if self.flag:
+            event.set()
 
 
     def boardToModel(self):
@@ -100,6 +107,7 @@ class ThreadedMain:
             # QUIT APPLICATIONS
             elif key == KeyCode.from_char('['):
                 print("Exiting program.")
+                self.flag = True
                 sys.exit(0)
 
         except Exception as e:
@@ -126,21 +134,18 @@ class ThreadedMain:
         if self.overlay_app:
             self.overlay_app.custom_window.update_signal.emit(stats_output)
 
+    def quit_application(self):
+        # Signal the background thread to terminate
+        self.terminate_event.set()
+
     def main(self, terminate_event):
-        parser = argparse.ArgumentParser()
-        parser.add_argument('-skp', '--simulate-keys', action='store_true', 
-                            help='Enable simulation of key presses')
-        args = parser.parse_args()
-
-        if args.simulate_keys:
-            print("Simulating keyboard input...\n\n\n")
-
+        print("ThreadedMain Running...")
         listener_thread = threading.Thread(target=self.start_listener, daemon=True)
         listener_thread.start()
 
-        # Keep the main thread alive until a terminate signal is received
+        # Main loop
         while not terminate_event.is_set():
-            time.sleep(0.1)
+            self.checkEvent(terminate_event)
+            time.sleep(1)
 
-        # Clean up before exiting
-        listener_thread.join()
+        print("ThreadedMain Terminated.")

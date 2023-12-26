@@ -3,35 +3,32 @@ import os
 import threading
 from PyQt5.QtWidgets import QApplication
 import Files.overlay as overlay
-import threaded_main  # Import the module
+import threaded_main
 
 class MainApp:
     def __init__(self):
         self.terminate_event = threading.Event()
-        self.overlay_app = None
-        self.threaded_main_app = threaded_main.ThreadedMain()  # Create an instance of ThreadedMain
-
-    def run_overlay_app(self):
-        print("\n\nRunning Overlay application...\n\n")
         self.overlay_app = overlay.OverlayApp(screen_scaling=1)
-        self.threaded_main_app.set_overlay_app(self.overlay_app)  # Set the overlay app in ThreadedMain
-        self.overlay_app.run()
+        self.overlay_app.custom_window.closed.connect(self.on_overlay_closed)
+        self.overlay_app.custom_window.finish_signal.connect(self.on_overlay_closed)
 
-    def run_threaded_main(self):
-        # Run the threaded_main logic in a separate thread
-        threaded_main_thread = threading.Thread(target=self.threaded_main_app.main, args=(self.terminate_event,))
-        threaded_main_thread.start()
+        self.threaded_main_app = threaded_main.ThreadedMain()
+        self.threaded_main_app.set_overlay_app(self.overlay_app)
+        
 
     def run(self):
-        # Start the threaded_main logic in a separate thread
-        ''' PAUSED FOR OVERLAY TESTING'''
-        self.run_threaded_main()
+        # Start the background task in a separate thread
+        self.background_task_thread = threading.Thread(target=self.threaded_main_app.main, daemon=True, args=(self.terminate_event,))
+        self.background_task_thread.start()
 
-        # Initialize and run the overlay application
-        self.run_overlay_app()
+        # Run the overlay application directly on the main thread
+        self.overlay_app.run()
 
-        # Wait for the PyQt5 event loop to finish before exiting
-        sys.exit(self.overlay_app.app.exec_())
+    def on_overlay_closed(self):
+        print("OverlayApp closed.")
+        # Signal to stop the ThreadedMain thread when overlay is closed
+        self.terminate_event.set()
+
 
 if __name__ == "__main__":
     app = MainApp()

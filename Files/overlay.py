@@ -1,14 +1,9 @@
 import sys
 import os
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QPainter, QPen, QFont, QFontMetrics
-from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget
-import Files.screen_coords as screen_coords
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 import threaded_main as tm
-import pyautogui
-
-qt_plugins_path = ".venv/lib/python3.11/site-packages/PyQt5/Qt5/plugins/"  # Replace with your actual path
-os.environ["QT_PLUGIN_PATH"] = qt_plugins_path
 
 class OverlayApp:
     def __init__(self, screen_scaling=1, opacity=1):
@@ -22,22 +17,16 @@ class OverlayApp:
         self.custom_window.setWindowFlags(self.custom_window.windowFlags() | Qt.WindowStaysOnTopHint)
         self.custom_window.activateWindow()
         self.custom_window.raise_()
-
-        ''' CURRENT ISSUE '''
-        sys.exit(self.app.exec_())
-
-    def close_window(self):
-        self.custom_window.close_window()
-        self.app.quit()
+        self.app.exec_()
 
 class CustomWindow(QMainWindow):
     update_signal = pyqtSignal(dict)
-    update2 = pyqtSignal(list)
+    closed = pyqtSignal()
+    finish_signal = pyqtSignal()
 
     def __init__(self, app, screen_scaling, opacity, parent=None):
         super().__init__(parent)
         self.update_signal.connect(self.update_overlay)
-        self.update2.connect(self.update_overlay2)
         self.app = app
         self.screen_scaling = screen_scaling
         self.opacity = opacity
@@ -53,21 +42,44 @@ class CustomWindow(QMainWindow):
         self.string_dict = {}
 
         screen = QDesktopWidget().screenGeometry()
-        
+
         # Set window size to screen size
         self.resize(screen.width(), screen.height() - 200)
         self.move(0, 0)
+
+                # Create the button
+        self.pushButton = QPushButton(self)
+        self.pushButton.setGeometry(QRect(screen.width() - 100, 10, 80, 30))
+        self.pushButton.setText("Finished")
+        self.pushButton.clicked.connect(self.on_finish_clicked)
+
+        # Center the button
+        qr = self.pushButton.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.pushButton.move(qr.topLeft())
+
+        print("Finish Button Created!")
+
 
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setAttribute(Qt.WA_NoSystemBackground, True)
 
+
+
     def update_overlay(self, stat_dict):
         self.string_dict = stat_dict  # Update the data for the textbox
         self.update()  # Trigger a repaint
 
+
+    def on_finish_clicked(self):
+        self.close_window()
+
+        
     def close_window(self):
         self.close()
+        self.closed.emit() 
 
     def paintEvent(self, event=None):
         try: 
